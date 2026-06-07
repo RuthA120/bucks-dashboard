@@ -42,27 +42,9 @@ def load_data(conn, csv_file):
                 else None
             )
 
-            pass_info = (
-                json.loads(row["passInfo"])
-                if row["passInfo"]
-                else None
-            )
-
             reb_info = (
                 json.loads(row["rebInfo"])
                 if row["rebInfo"]
-                else None
-            )
-
-            crash_info = (
-                json.loads(row["crashInfo"])
-                if row["crashInfo"]
-                else None
-            )
-
-            isolation_info = (
-                json.loads(row["isolationInfo"])
-                if row["isolationInfo"]
                 else None
             )
 
@@ -85,24 +67,17 @@ def load_data(conn, csv_file):
 
             if lineups:
                 insert_lineups(cursor, xid_chance, lineups)
+                update_lineup_key(cursor, xid_chance, lineups, teams)
 
             if drive_info:
                 insert_drive(cursor, xid_chance, drive_info)
 
-            if isolation_info:
-                insert_isolation(cursor, xid_chance, isolation_info)
-
             if pick_info:
                 insert_pick(cursor, xid_chance, pick_info)
-
-            if pass_info:
-                insert_pass(cursor, xid_chance, pass_info)
 
             if reb_info:
                 insert_rebound(cursor, xid_chance, reb_info)
 
-            if crash_info:
-                insert_crash(cursor, xid_chance, crash_info)
 
     conn.commit()
     cursor.close()
@@ -204,13 +179,7 @@ def insert_shots(cursor, xid_chance, shot_info):
         ))
 
 def insert_lineups(cursor, xid_chance, lineups):
-    """
-    Inserts both the on-court offensive and defensive lineups for a chance.
-    team_role is either 'offense' or 'defense'.
-    lineup_position is the idx field (1–5) from the data.
-    """
     on_court = lineups.get("onCourt", {})
-
     for player in on_court.get("lineupOff", []):
         cursor.execute("""
             INSERT OR IGNORE INTO lineups (
@@ -242,40 +211,17 @@ def insert_drive(cursor, xid_chance, drive_info):
         INSERT OR IGNORE INTO drives (
             xid_chance,
             actions,
-            direct_chance,
             pts_scored,
             blowby_opportunities,
             blowbys
         )
-        VALUES (?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?)
     """, (
         xid_chance,
         drive_info.get("actions", 0),
-        drive_info.get("directChance", 0),
         drive_info.get("ptsScored", 0),
         drive_info.get("blowbyOpp", 0),
         drive_info.get("blowby", 0)
-    ))
-
-def insert_isolation(cursor, xid_chance, isolation_info):
-    """
-    Isolation info shares the same schema as drives (actions,
-    directChance, ptsScored) but lives in its own table so you
-    can filter and compare ISO vs drive efficiency separately.
-    """
-    cursor.execute("""
-        INSERT OR IGNORE INTO isolation_actions (
-            xid_chance,
-            actions,
-            direct_chance,
-            pts_scored
-        )
-        VALUES (?, ?, ?, ?)
-    """, (
-        xid_chance,
-        isolation_info.get("actions", 0),
-        isolation_info.get("directChance", 0),
-        isolation_info.get("ptsScored", 0)
     ))
 
 def insert_pick(cursor, xid_chance, pick_info):
@@ -283,7 +229,6 @@ def insert_pick(cursor, xid_chance, pick_info):
         INSERT OR IGNORE INTO pick_actions (
             xid_chance,
             actions,
-            direct_chance,
             pts_scored,
             double_team,
             roll,
@@ -292,11 +237,10 @@ def insert_pick(cursor, xid_chance, pick_info):
             def_under,
             def_switch
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (
         xid_chance,
         pick_info.get("actions", 0),
-        pick_info.get("directChance", 0),
         pick_info.get("ptsScored", 0),
         pick_info.get("double", 0),
         pick_info.get("roll", 0),
@@ -304,28 +248,6 @@ def insert_pick(cursor, xid_chance, pick_info):
         pick_info.get("defOver", 0),
         pick_info.get("defUnder", 0),
         pick_info.get("defSwitch", 0)
-    ))
-
-def insert_pass(cursor, xid_chance, pass_info):
-    cursor.execute("""
-        INSERT OR IGNORE INTO pass_actions (
-            xid_chance,
-            passes,
-            completed,
-            assist_opportunities,
-            secondary_assists,
-            turnovers,
-            deflections
-        )
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-    """, (
-        xid_chance,
-        pass_info.get("actions", 0),
-        pass_info.get("complete", 0),
-        pass_info.get("assistOpp", 0),
-        pass_info.get("secondaryAssist", 0),
-        pass_info.get("turnover", 0),
-        pass_info.get("deflected", 0)
     ))
 
 def insert_rebound(cursor, xid_chance, reb_info):
@@ -354,16 +276,27 @@ def insert_rebound(cursor, xid_chance, reb_info):
         reb_info.get("boxoutRear", 0)
     ))
 
-def insert_crash(cursor, xid_chance, crash_info):
+def build_lineup_key(lineups_json, team_role):
+    on_court = lineups_json.get("onCourt", {})
+    key = "lineupOff" if team_role == "offense" else "lineupDef"
+    players = on_court.get(key, [])
+    ids = sorted(p["playerInfo"]["pid_s2"] for p in players)
+    return "|".join(ids)
+
+
+def update_lineup_key(cursor, xid_chance, lineups_json, teams):
+    offense_team = teams["teamOffense"]["teamInfo"]["teamAbbrev_s2"]
+
+    if offense_team == "MIL":
+        mil_offense_key = build_lineup_key(lineups_json, "offense")
+        mil_defense_key = None
+    else:
+        mil_offense_key = None
+        mil_defense_key = build_lineup_key(lineups_json, "defense")
+
     cursor.execute("""
-        INSERT OR IGNORE INTO crash_rebounds (
-            xid_chance,
-            crashed,
-            rebounded
-        )
-        VALUES (?, ?, ?)
-    """, (
-        xid_chance,
-        crash_info.get("crashed", 0),
-        crash_info.get("reb", 0)
-    ))
+        UPDATE chances
+        SET mil_offense_lineup_key = ?,
+            mil_defense_lineup_key = ?
+        WHERE xid_chance = ?
+    """, (mil_offense_key, mil_defense_key, xid_chance))
