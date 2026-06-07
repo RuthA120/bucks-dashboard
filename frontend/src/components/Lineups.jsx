@@ -72,18 +72,18 @@ function LineupDefenseTable({ data }) {
         <tbody>
           {data.map((r, i) => (
             <tr key={i}>
-              <td className="right muted">{i + 1}</td>
-              <td className="right" style={{fontWeight:700,color:'#ff8c8c'}}>{r.pts_allowed ?? 0}</td>
-              <td className="right muted">{r.expected_points_allowed ?? '—'}</td>
-              <td className="right muted">{r.chances_defended ?? '—'}</td>
-              <td className="right muted">{r.pts_allowed_per_chance ?? '—'}</td>
-              <td className="right muted">{r.fga_allowed ?? 0}</td>
+              <td className="right">{i + 1}</td>
+              <td className="right">{r.pts_allowed ?? 0}</td>
+              <td className="right">{r.expected_points_allowed ?? '—'}</td>
+              <td className="right">{r.chances_defended ?? '—'}</td>
+              <td className="right">{r.pts_allowed_per_chance ?? '—'}</td>
+              <td className="right">{r.fga_allowed ?? 0}</td>
               <td className="right">{pct(r.fg_pct_allowed)}</td>
-              <td className="right muted">{r.fga3_allowed ?? 0}</td>
+              <td className="right">{r.fga3_allowed ?? 0}</td>
               <td className="right">{pct(r.fg3_pct_allowed)}</td>
               <td className="right accent">{r.turnovers_forced ?? 0}</td>
-              <td className="right muted">{r.opp_avg_qsq ?? '—'}</td>
-              <td className="right muted">{r.opp_avg_qsp ?? '—'}</td>
+              <td className="right">{r.opp_avg_qsq ?? '—'}</td>
+              <td className="right">{r.opp_avg_qsp ?? '—'}</td>
             </tr>
           ))}
         </tbody>
@@ -142,7 +142,7 @@ export default function Lineups() {
       </div>
 
       <div className="lineups-note">
-        Each row represents a distinct 5-man lineup used by Milwaukee, ranked by points scored (offense) or points allowed (defense). Use the <strong style={{color:'var(--text)'}}>Player Key</strong> buttons to see which players make up each lineup.
+        Each row represents a distinct 5-man lineup used by Milwaukee, ranked by number of 'chances' each lineup had on the offensive side, and for the defensive side we look at the number of 'chances' they defended. Use the Player Key buttons to see which players make up each lineup.
       </div>
 
       <div className="lineup-key-header">

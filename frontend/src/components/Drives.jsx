@@ -11,16 +11,16 @@ function DriveOffenseTable({ data }) {
             <th>Player</th>
             <th className="right">Drives</th>
             <th className="right">PTS</th>
-            <th className="right">Expected PTS</th>
+            <th className="right">Finish Rate</th>
           </tr>
         </thead>
         <tbody>
           {data.map((r, i) => (
             <tr key={i}>
               <td className="player-name">{r.player}</td>
-              <td className="right muted">{r.drive_finish_attempts ?? 0}</td>
-              <td className="right" style={{fontWeight:600}}>{r.pts_scored ?? 0}</td>
-              <td className="right accent">{r.expected_points ?? 0}</td>
+              <td className="right">{r.drive_finish_attempts ?? 0}</td>
+              <td className="right">{r.pts_scored ?? 0}</td>
+              <td className="right">{(r.finish_rate * 100).toFixed(1) + '%'}</td>
             </tr>
           ))}
         </tbody>
@@ -37,8 +37,8 @@ function DefenseBeatenTable({ data }) {
         <thead>
           <tr>
             <th>Defender</th>
-            <th className="right">Beaten</th>
-            <th className="right">Opportunities</th>
+            <th className="right">Beaten on Blowby</th>
+            <th className="right">Blowby Attempts</th>
             <th className="right">Blowby%</th>
           </tr>
         </thead>
@@ -50,8 +50,8 @@ function DefenseBeatenTable({ data }) {
             return (
               <tr key={i}>
                 <td className="player-name">{r.defender}</td>
-                <td className="right" style={{fontWeight:600,color:'#ff6b6b'}}>{r.blowbys_allowed ?? 0}</td>
-                <td className="right muted">{r.blowby_opportunities ?? 0}</td>
+                <td className="right">{r.blowbys_allowed ?? 0}</td>
+                <td className="right">{r.blowby_opportunities ?? 0}</td>
                 <td className="right">{rate}</td>
               </tr>
             )
@@ -80,15 +80,19 @@ export default function Drives() {
       </div>
 
       <p className="sub-heading">MIL Drive Offense — Finishers</p>
+      <div className="drives-glossary">
+        <strong>Drives</strong> — when a ball-handler aggressively dribbles the ball toward the basket with the intent to score<br></br>
+        <strong>Finish Rate</strong> - measuring player effiency at making shots on drives
+      </div>
       <DriveOffenseTable data={offense.data} />
 
       <hr className="divider" />
 
-      <div className="drives-glossary">
-        <strong>Blowby</strong> — when a ball-handler beats their defender off the dribble to gain an advantageous position. A higher blowby rate on offense indicates effective drive creation; a higher rate allowed on defense indicates difficulty staying in front of ball-handlers.
-      </div>
-
       <p className="sub-heading">MIL Defenders Beaten Off Dribble</p>
+      <div className="drives-glossary">
+        <strong>Blowby%</strong> — when a ball-handler beats their defender off the dribble to gain an advantageous position. A higher blowby rate on offense indicates effective drive creation; a higher rate allowed on defense indicates difficulty staying in front of ball-handlers.
+
+      </div>
       <DefenseBeatenTable data={defense.data} />
     </div>
   )

@@ -277,8 +277,7 @@ def get_drive_finishers(conn: sqlite3.Connection):
             ROUND(CAST(SUM(CASE WHEN c.outcome LIKE 'FGM%'
                 THEN 1 ELSE 0 END) AS REAL) /
                 NULLIF(COUNT(DISTINCT d.xid_chance), 0), 3) AS finish_rate,
-            SUM(d.pts_scored) AS pts_scored,
-            ROUND(SUM(c.expected_pts), 3) AS expected_points
+            SUM(d.pts_scored) AS pts_scored
         FROM drives d
         JOIN chances c ON c.xid_chance = d.xid_chance
         JOIN players p ON p.pid_s2 = c.chance_user_id
@@ -325,16 +324,12 @@ def get_offense_roll_and_pop_stats(conn: sqlite3.Connection):
             SUM(pk.roll) AS roll_actions,
             SUM(CASE WHEN pk.roll = 1
                 THEN c.pts_scored ELSE 0 END) AS roll_pts,
-            ROUND(SUM(CASE WHEN pk.roll = 1
-                THEN c.expected_pts ELSE 0 END), 3) AS roll_expected_points,
             ROUND(CAST(SUM(CASE WHEN pk.roll = 1
                 THEN c.pts_scored ELSE 0 END) AS REAL) /
                 NULLIF(SUM(pk.roll), 0), 3) AS pts_per_roll,
             SUM(pk.pop) AS pop_actions,
             SUM(CASE WHEN pk.pop = 1
                 THEN c.pts_scored ELSE 0 END) AS pop_pts,
-            ROUND(SUM(CASE WHEN pk.pop = 1
-                THEN c.expected_pts ELSE 0 END), 3) AS pop_expected_points,
             ROUND(CAST(SUM(CASE WHEN pk.pop = 1
                 THEN c.pts_scored ELSE 0 END) AS REAL) /
                 NULLIF(SUM(pk.pop), 0), 3) AS pts_per_pop

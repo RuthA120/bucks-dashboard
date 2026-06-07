@@ -5,8 +5,8 @@ import {
 import { useFetch, Spinner, ErrorMsg, pct } from '../App'
 import './ShotQuality.css'
 
-const MIL_COLOR = '#EEE220'
-const CHA_COLOR = '#7eb8c9'
+const MIL_COLOR = '#027c45'
+const CHA_COLOR = '#05a8c5'
 
 function buildChartData(byQuarter) {
   if (!byQuarter?.length) return []

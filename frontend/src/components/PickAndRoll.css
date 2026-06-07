@@ -1,13 +1,13 @@
 .pnr-stat-card {
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 1px solid var(--border2);
   border-radius: var(--radius);
-  padding: 0.85rem 1rem;
+  padding: 0.9rem 1rem;
 }
 
 .pnr-stat-label {
-  font-size: 0.78rem;
-  font-weight: 600;
+  font-size: 0.82rem;
+  font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--text3);
@@ -16,62 +16,79 @@
 
 .pnr-stat-value {
   font-family: var(--font-display);
-  font-size: 1.9rem;
-  font-weight: 700;
+  font-size: 2.1rem;
+  font-weight: 800;
   line-height: 1;
 }
-.pnr-stat-value.mil { color: var(--mil-accent); }
-.pnr-stat-value.cha { color: var(--cha-color); }
-
-.coverage-block { margin-bottom: 1.1rem; }
-
-.coverage-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 0.35rem;
-}
-
-.coverage-label {
-  font-family: var(--font-display);
-  font-size: 1rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--text);
-}
-
-.coverage-meta {
-  font-size: 0.85rem;
-  color: var(--text2);
-}
-
-.bar-track {
-  height: 10px;
-  background: var(--bg3);
-  border-radius: 4px;
-  overflow: hidden;
-}
-
-.bar-fill {
-  height: 100%;
-  border-radius: 4px;
-  transition: width 0.6s ease;
-}
-.bar-fill.over   { background: #4a9eff; }
-.bar-fill.under  { background: #ff9f4a; }
-.bar-fill.switch { background: #a06afc; }
-
-.coverage-pts-note {
-  margin-top: 0.3rem;
-  font-size: 0.82rem;
-  color: var(--text3);
-}
+.pnr-stat-value.mil { color: var(--mil); }
+.pnr-stat-value.cha { color: var(--cha-light); }
 
 .pnr-team-label {
-  font-size: 0.82rem;
-  font-weight: 600;
+  font-size: 0.85rem;
+  font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
   margin-bottom: 0.75rem;
+}
+
+/* ── Coverage scheme cards ── */
+.coverage-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+@media (max-width: 600px) {
+  .coverage-cards-grid { grid-template-columns: 1fr; }
+}
+
+.coverage-card {
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-lg);
+  padding: 1.1rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.coverage-card-scheme {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  border-left: 3px solid;
+  padding-left: 0.6rem;
+}
+
+.coverage-card-main {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+}
+
+.coverage-card-pts {
+  font-family: var(--font-display);
+  font-size: 2.75rem;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--text);
+}
+
+.coverage-card-pts-label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text3);
+}
+
+.coverage-card-footer {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.88rem;
+  color: var(--text2);
+  border-top: 1px solid var(--border);
+  padding-top: 0.5rem;
 }

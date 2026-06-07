@@ -73,9 +73,7 @@ export default function App() {
             <span className="team cha">CHA</span>
           </div>
           <div className="game-meta">
-            <span>January 22, 2026</span>
-            <span className="dot">·</span>
-            <span>Game Report</span>
+            <span>January 22, 2026 Game Report</span>
           </div>
         </div>
       </header>

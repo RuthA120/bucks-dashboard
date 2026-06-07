@@ -1,5 +1,6 @@
-import { useFetch, Spinner, ErrorMsg, pct } from '../App'
+import { useFetch, pct } from '../App'
 import './Overview.css'
+import courtDiagram from '../assets/court-regions.jpeg'
 
 function TeamStatsTable({ data }) {
   if (!data?.length) return null
@@ -24,8 +25,8 @@ function TeamStatsTable({ data }) {
         <thead>
           <tr>
             <th>Stat</th>
-            <th className="right" style={{color:'#b8d88b'}}>MIL</th>
-            <th className="right" style={{color:'#7eb8c9'}}>CHA</th>
+            <th className="right" style={{color:'#00693A'}}>MIL</th>
+            <th className="right" style={{color:'#05a8c5'}}>CHA</th>
           </tr>
         </thead>
         <tbody>
@@ -52,8 +53,8 @@ function ReboundTable({ data }) {
         <thead>
           <tr>
             <th>Rebounds</th>
-            <th className="right" style={{color:'#b8d88b'}}>MIL</th>
-            <th className="right" style={{color:'#7eb8c9'}}>CHA</th>
+            <th className="right" style={{color:'#00693A'}}>MIL</th>
+            <th className="right" style={{color:'#05a8c5'}}>CHA</th>
           </tr>
         </thead>
         <tbody>
@@ -78,14 +79,21 @@ function ShotRegions({ data, team }) {
   const teamData = data.filter(r => r.team === team)
   if (!teamData.length) return <p style={{color:'var(--text3)',fontSize:'0.9rem'}}>No data</p>
   return (
-    <div className="regions-grid">
-      {teamData.map(r => (
-        <div key={r.region} className="region-card">
-          <div className="region-name">{r.region}</div>
-          <div className="region-pct">{pct(r.fg_pct)}</div>
-          <div className="region-attempts">{r.fgm}/{r.fga} FGM/FGA</div>
-        </div>
-      ))}
+    <div className="regions-layout">
+      <div className="regions-grid">
+        {teamData.map(r => (
+          <div key={r.region} className="region-card">
+            <div className="region-name">{r.region}</div>
+            <div className="region-pct">{pct(r.fg_pct)}</div>
+            <div className="region-attempts">{r.fgm}/{r.fga} FGM/FGA</div>
+          </div>
+        ))}
+      </div>
+      <img
+        src={courtDiagram}
+        alt="Court shot regions diagram"
+        className="regions-court-img"
+      />
     </div>
   )
 }
@@ -97,9 +105,6 @@ export default function Overview() {
 
   const loading = stats.loading || reb.loading || shots.loading
   const error   = stats.error   || reb.error   || shots.error
-
-  if (loading) return <Spinner />
-  if (error)   return <ErrorMsg msg={error} />
 
   const mil = stats.data?.find(r => r.team === 'MIL')
   const cha = stats.data?.find(r => r.team === 'CHA')

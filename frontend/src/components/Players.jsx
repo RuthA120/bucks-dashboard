@@ -8,11 +8,8 @@ function LeaderCard({ category, data, statKey, statLabel }) {
     <div className="leader-card">
       <div className="leader-category">{category}</div>
       <div className="leader-name">{data.player}</div>
-      <div className="leader-stat">{data[statKey] ?? '—'}</div>
+      <div className={`leader-stat team ${teamClass}`} style={{fontSize: '3.5rem'}}>{data[statKey] ?? '—'}</div>
       <div className="leader-sub">{statLabel}</div>
-      <div className="leader-team">
-        <span className={`team-badge ${teamClass}`}>{data.team}</span>
-      </div>
     </div>
   )
 }
