@@ -1,122 +1,100 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
+import { useState, useEffect } from 'react'
+import Overview from './components/Overview'
+import Players from './components/Players'
+import Drives from './components/Drives'
+import PickAndRoll from './components/PickAndRoll'
+import ShotQuality from './components/ShotQuality'
+import Lineups from './components/Lineups'
 import './App.css'
 
-function App() {
-  const [count, setCount] = useState(0)
+const API = 'http://localhost:8000'
 
-  return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+const NAV = [
+  { id: 'overview',     label: 'Overview' },
+  { id: 'players',      label: 'Players' },
+  { id: 'drives',       label: 'Drives' },
+  { id: 'pick-and-roll',label: 'Pick & Roll' },
+  { id: 'shot-quality', label: 'Shot Quality' },
+  { id: 'lineups',      label: 'Lineups' },
+]
 
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+export function useFetch(url) {
+  const [data, setData] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+  useEffect(() => {
+    setLoading(true)
+    setError(null)
+    fetch(`${API}${url}`)
+      .then(r => { if (!r.ok) throw new Error(r.status); return r.json() })
+      .then(d => { setData(d); setLoading(false) })
+      .catch(e => { setError(e.message); setLoading(false) })
+  }, [url])
+  return { data, loading, error }
 }
 
-export default App
+export function Spinner() {
+  return <div className="spinner"><div /><div /><div /></div>
+}
+
+export function ErrorMsg({ msg }) {
+  return <p className="error-msg">⚠ Could not load data: {msg}</p>
+}
+
+export function pct(val) {
+  if (val == null) return '—'
+  return (val * 100).toFixed(1) + '%'
+}
+
+export function round(val, dec = 1) {
+  if (val == null) return '—'
+  return Number(val).toFixed(dec)
+}
+
+export default function App() {
+  const [section, setSection] = useState('overview')
+
+  const pages = {
+    overview:       <Overview />,
+    players:        <Players />,
+    drives:         <Drives />,
+    'pick-and-roll':<PickAndRoll />,
+    'shot-quality': <ShotQuality />,
+    lineups:        <Lineups />,
+  }
+
+  return (
+    <div className="app">
+      <header className="site-header">
+        <div className="header-inner">
+          <div className="matchup">
+            <span className="team mil">MIL</span>
+            <span className="vs">VS</span>
+            <span className="team cha">CHA</span>
+          </div>
+          <div className="game-meta">
+            <span>January 22, 2026</span>
+            <span className="dot">·</span>
+            <span>Game Report</span>
+          </div>
+        </div>
+      </header>
+
+      <nav className="site-nav">
+        {NAV.map(n => (
+          <button
+            key={n.id}
+            className={`nav-btn${section === n.id ? ' active' : ''}`}
+            onClick={() => setSection(n.id)}
+          >
+            {n.label}
+          </button>
+        ))}
+      </nav>
+
+      <main className="site-main">
+        {pages[section]}
+      </main>
+    </div>
+  )
+}
