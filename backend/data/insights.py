@@ -10,10 +10,7 @@ appear on the dashboard site. Analytics will include...
 """
 
 import sqlite3
-from utils import pprint_section, pprint_all
 
-conn = sqlite3.connect("mil_cha_game.db")
-conn.row_factory = sqlite3.Row
 
 """
 Overview of the Game
@@ -23,7 +20,7 @@ DREB, OREB, etc. overall and by quarter
 efficiency per region (overall and by quarter)
 """
 
-def get_team_overview_stats(conn):
+def get_team_overview_stats(conn: sqlite3.Connection):
     return conn.execute("""
         SELECT
             offense_team AS team,
@@ -62,7 +59,7 @@ def get_team_overview_stats(conn):
         GROUP BY offense_team
     """).fetchall()
 
-def get_team_rebounding_stats(conn):
+def get_team_rebounding_stats(conn: sqlite3.Connection):
     return conn.execute("""
         SELECT
             c.defense_team AS team,
@@ -74,7 +71,7 @@ def get_team_rebounding_stats(conn):
         ORDER BY def_reb DESC
     """).fetchall()
 
-def get_shot_chart_overall(conn):
+def get_shot_chart_overall(conn: sqlite3.Connection):
     return conn.execute("""
         SELECT
             c.offense_team AS team,
@@ -97,7 +94,7 @@ def get_shot_chart_overall(conn):
         ORDER BY c.offense_team
     """).fetchall()
 
-def get_shot_chart_by_quarter(conn):
+def get_shot_chart_by_quarter(conn: sqlite3.Connection):
     return conn.execute("""
         SELECT
             c.offense_team AS team,
@@ -128,43 +125,108 @@ Players Stats
 individual players
 - Both CHA and MIL will be reviewed here
 """
-def get_player_scoring_stats(conn):
+def get_player_scoring_stats(conn: sqlite3.Connection):
     return conn.execute("""
         SELECT
             p.first_name || ' ' || p.last_name AS player,
             c.offense_team AS team,
             SUM(c.pts_scored) AS pts,
+
             SUM(CASE WHEN c.outcome IN ('FGM2','FGX2','FGM3','FGX3')
                 THEN 1 ELSE 0 END) AS fga,
             SUM(CASE WHEN c.outcome IN ('FGM2','FGM3')
                 THEN 1 ELSE 0 END) AS fgm,
-            ROUND(
-                CAST(SUM(CASE WHEN c.outcome IN ('FGM2','FGM3')
-                THEN 1 ELSE 0 END
-                ) AS REAL
-                ) / NULLIF(SUM(CASE WHEN c.outcome IN ('FGM2','FGX2','FGM3','FGX3')
+            ROUND(CAST(SUM(CASE WHEN c.outcome IN ('FGM2','FGM3')
+                THEN 1 ELSE 0 END) AS REAL) /
+                NULLIF(SUM(CASE WHEN c.outcome IN ('FGM2','FGX2','FGM3','FGX3')
                 THEN 1 ELSE 0 END), 0), 3) AS fg_pct,
-            SUM(CASE WHEN c.outcome IN ('FGM3','FGX3')
-                THEN 1 ELSE 0 END) AS fga3,
             SUM(CASE WHEN c.outcome = 'FGM3'
                 THEN 1 ELSE 0 END) AS fg3m,
             ROUND(CAST(SUM(CASE WHEN c.outcome = 'FGM3'
                 THEN 1 ELSE 0 END) AS REAL) /
                 NULLIF(SUM(CASE WHEN c.outcome IN ('FGM3','FGX3')
                 THEN 1 ELSE 0 END), 0), 3) AS fg3_pct,
+            COALESCE(gs.ft, 0)                          AS ft,
+            COALESCE(gs.fta, 0)                         AS fta,
+            COALESCE(gs.ft_pct, 0)                      AS ft_pct,
             SUM(CASE WHEN c.outcome = 'TO'
                 THEN 1 ELSE 0 END) AS turnovers,
-            ROUND(AVG(s.qsq), 2) AS avg_qsq,
-            ROUND(AVG(s.qsp), 2) AS avg_qsp,
-            ROUND(SUM(c.expected_pts), 3) AS expected_points
+            COALESCE(gs.trb, 0)                         AS trb,
+            COALESCE(gs.ast, 0)                         AS ast,
+            COALESCE(gs.stl, 0)                         AS stl,
+            COALESCE(gs.blk, 0)                         AS blk,
+            COALESCE(gs.pf, 0)                          AS pf,
+            COALESCE(gs.plus_minus, 0)                  AS plus_minus,
+            ROUND(AVG(s.qsq), 2)                        AS avg_qsq,
+            ROUND(AVG(s.qsp), 2)                        AS avg_qsp,
+            ROUND(SUM(c.expected_pts), 3)               AS expected_points
         FROM chances c
         JOIN players p ON p.pid_s2 = c.chance_user_id
-        LEFT JOIN shots s ON s.xid_chance = c.xid_chance
+        LEFT JOIN shots s
+            ON s.xid_chance = c.xid_chance
             AND s.shooter_id = c.chance_user_id
+        LEFT JOIN player_game_stats gs
+            ON gs.player_name = p.first_name || ' ' || p.last_name
+            AND gs.team = c.offense_team
         WHERE c.outcome NOT IN ('EPD', 'Out of Bounds')
-        GROUP BY p.pid_s2
-        ORDER BY pts DESC;
-        """).fetchall()
+        GROUP BY p.pid_s2, c.offense_team
+        ORDER BY pts DESC
+    """).fetchall()
+
+
+def get_points_leader(conn: sqlite3.Connection):
+    return conn.execute("""
+        SELECT
+            p.first_name || ' ' || p.last_name AS player,
+            c.offense_team AS team,
+            SUM(c.pts_scored) AS pts,
+            COALESCE(gs.ft, 0) AS ft,
+            COALESCE(gs.fta, 0) AS fta
+        FROM chances c
+        JOIN players p ON p.pid_s2 = c.chance_user_id
+        LEFT JOIN player_game_stats gs
+            ON gs.player_name = p.first_name || ' ' || p.last_name
+            AND gs.team = c.offense_team
+        WHERE c.outcome NOT IN ('EPD', 'Out of Bounds')
+        GROUP BY p.pid_s2, c.offense_team
+        ORDER BY c.offense_team, pts DESC
+    """).fetchall()
+
+
+def get_assists_leader(conn: sqlite3.Connection):
+    return conn.execute("""
+        SELECT
+            player_name AS player,
+            team,
+            ast
+        FROM player_game_stats
+        WHERE ast IS NOT NULL
+        ORDER BY team, ast DESC
+    """).fetchall()
+
+
+def get_rebounds_leader(conn: sqlite3.Connection):
+    return conn.execute("""
+        SELECT
+            player_name AS player,
+            team,
+            trb
+        FROM player_game_stats
+        WHERE trb IS NOT NULL
+        ORDER BY team, trb DESC
+    """).fetchall()
+
+def get_steals_blocks_leader(conn: sqlite3.Connection):
+    return conn.execute("""
+        SELECT
+            player_name AS player,
+            team,
+            stl + blk AS stocks
+        FROM player_game_stats
+        WHERE stl IS NOT NULL
+          AND blk IS NOT NULL
+        ORDER BY team, stocks DESC
+    """).fetchall()
 
 
 """
@@ -177,7 +239,7 @@ if blow by opportunities were taken, etc.
 - We will look at the number of points CHA managed to score
 off of drives and defenders who were beaten off the dribble 
 """
-def get_drive_scoring_stats(conn):
+def get_drive_scoring_stats(conn: sqlite3.Connection):
     return conn.execute("""
         SELECT
             c.offense_team,
@@ -204,34 +266,35 @@ def get_drive_scoring_stats(conn):
         ORDER BY drive_pts_scored DESC
     """).fetchall()
 
-def get_drive_finishers(conn):
+def get_drive_finishers(conn: sqlite3.Connection):
     return conn.execute("""
         SELECT
             p.first_name || ' ' || p.last_name AS player,
             c.offense_team AS team,
             COUNT(DISTINCT d.xid_chance) AS drive_finish_attempts,
-            SUM(CASE WHEN c.outcome LIKE 'FGM%' THEN 1 ELSE 0 END) AS makes,
-            ROUND(
-                CAST(SUM(CASE WHEN c.outcome LIKE 'FGM%' THEN 1 ELSE 0 END) AS REAL) /
+            SUM(CASE WHEN c.outcome LIKE 'FGM%'
+                THEN 1 ELSE 0 END) AS makes,
+            ROUND(CAST(SUM(CASE WHEN c.outcome LIKE 'FGM%'
+                THEN 1 ELSE 0 END) AS REAL) /
                 NULLIF(COUNT(DISTINCT d.xid_chance), 0), 3) AS finish_rate,
             SUM(d.pts_scored) AS pts_scored,
             ROUND(SUM(c.expected_pts), 3) AS expected_points
         FROM drives d
         JOIN chances c ON c.xid_chance = d.xid_chance
         JOIN players p ON p.pid_s2 = c.chance_user_id
-        WHERE d.direct_chance = 1
-        AND c.offense_team = 'MIL'
+        WHERE c.offense_team = 'MIL'
+          AND d.direct_chance = 1
         GROUP BY p.pid_s2
         ORDER BY pts_scored DESC
     """).fetchall()
 
-def get_defenders_beaten_off_dribble(conn):
+def get_defenders_beaten_off_dribble(conn: sqlite3.Connection):
     return conn.execute("""
         SELECT
             p.first_name || ' ' || p.last_name AS defender,
             c.defense_team AS team,
-            SUM( d.blowbys) AS blowbys_allowed,
-            SUM( d.blowby_opportunities) AS blowby_opportunities,
+            SUM(d.blowbys) AS blowbys_allowed,
+            SUM(d.blowby_opportunities) AS blowby_opportunities,
             ROUND(CAST(SUM( d.blowbys) AS REAL) /
                 NULLIF(SUM( d.blowby_opportunities), 0), 3) AS blowby_rate_allowed
         FROM drives d
@@ -240,6 +303,7 @@ def get_defenders_beaten_off_dribble(conn):
         JOIN players p ON p.pid_s2 = s.defender_id
         WHERE c.defense_team = 'MIL'
         GROUP BY p.pid_s2
+        HAVING blowbys_allowed > 1
         ORDER BY blowbys_allowed DESC
     """).fetchall()
 
@@ -254,7 +318,7 @@ plays.
 - We will also look at defense for picks/screens in general
 """
 
-def get_offense_roll_and_pop_stats(conn):
+def get_offense_roll_and_pop_stats(conn: sqlite3.Connection):
     return conn.execute("""
         SELECT
             c.offense_team AS team,
@@ -280,7 +344,7 @@ def get_offense_roll_and_pop_stats(conn):
         ORDER BY roll_actions DESC
     """).fetchall()
 
-def get_roll_defensive_coverage(conn):
+def get_roll_defensive_coverage(conn: sqlite3.Connection):
     return conn.execute("""
         SELECT
             c.defense_team AS team,
@@ -310,7 +374,7 @@ def get_roll_defensive_coverage(conn):
     """).fetchall()
 
 
-def get_pop_defensive_coverage(conn):
+def get_pop_defensive_coverage(conn: sqlite3.Connection):
     return conn.execute("""
         SELECT
             c.defense_team AS team,
@@ -339,7 +403,7 @@ def get_pop_defensive_coverage(conn):
         ORDER BY c.defense_team
     """).fetchall()
 
-def get_over_screen_pts_allowed(conn):
+def get_over_screen_pts_allowed(conn: sqlite3.Connection):
     return conn.execute("""
         SELECT
             c.defense_team AS team,
@@ -356,7 +420,7 @@ def get_over_screen_pts_allowed(conn):
     """).fetchall()
 
 
-def get_under_screen_pts_allowed(conn):
+def get_under_screen_pts_allowed(conn: sqlite3.Connection):
     return conn.execute("""
         SELECT
             c.defense_team AS team,
@@ -372,7 +436,7 @@ def get_under_screen_pts_allowed(conn):
         ORDER BY c.defense_team
     """).fetchall()
 
-def get_switch_pts_allowed(conn):
+def get_switch_pts_allowed(conn: sqlite3.Connection):
     return conn.execute("""
         SELECT
             c.defense_team AS team,
@@ -388,7 +452,7 @@ def get_switch_pts_allowed(conn):
         ORDER BY c.defense_team
     """).fetchall()
 
-def get_double_team_pts_allowed(conn):
+def get_double_team_pts_allowed(conn: sqlite3.Connection):
     return conn.execute("""
         SELECT
             c.defense_team AS team,
@@ -411,7 +475,7 @@ Shot Quality
 field goal percentage, qSQ, and qSP averages.
 """
 
-def get_shot_quality_by_team(conn):
+def get_shot_quality_by_team(conn: sqlite3.Connection):
     return conn.execute("""
         SELECT
             c.offense_team AS team,
@@ -428,7 +492,7 @@ def get_shot_quality_by_team(conn):
         GROUP BY c.offense_team
     """).fetchall()
 
-def get_shot_quality_by_quarter(conn):
+def get_shot_quality_by_quarter(conn: sqlite3.Connection):
     return conn.execute("""
         SELECT
             c.offense_team                          AS team,
@@ -454,11 +518,15 @@ Lineups
 and the stats from both sides
 """
 
-def get_mil_lineup_offense(conn):
+def get_mil_lineup_offense(conn: sqlite3.Connection):
     return conn.execute("""
         SELECT
+            c.mil_offense_lineup_key AS lineup_key,
+            COUNT(DISTINCT c.xid_chance) AS chances,
             SUM(c.pts_scored) AS pts_scored,
             ROUND(SUM(c.expected_pts), 3) AS expected_points,
+            ROUND(CAST(SUM(c.pts_scored) AS REAL) /
+                NULLIF(COUNT(DISTINCT c.xid_chance), 0), 3) AS pts_per_chance,
             SUM(CASE WHEN c.outcome IN ('FGM2','FGX2','FGM3','FGX3')
                 THEN 1 ELSE 0 END) AS fga,
             SUM(CASE WHEN c.outcome IN ('FGM2','FGM3')
@@ -466,32 +534,38 @@ def get_mil_lineup_offense(conn):
             ROUND(CAST(SUM(CASE WHEN c.outcome IN ('FGM2','FGM3')
                 THEN 1 ELSE 0 END) AS REAL) /
                 NULLIF(SUM(CASE WHEN c.outcome IN ('FGM2','FGX2','FGM3','FGX3')
-                    THEN 1 ELSE 0 END), 0),3) AS fg_pct,
-            SUM(CASE WHEN c.outcome IN ('FGM3','FGX3') THEN 1 ELSE 0 END) AS fga3,
-            SUM(CASE WHEN c.outcome = 'FGM3' THEN 1 ELSE 0 END) AS fg3m,
-            ROUND(CAST(SUM(CASE WHEN c.outcome = 'FGM3'THEN 1 ELSE 0 END) AS REAL) /
-                NULLIF(SUM(CASE WHEN c.outcome IN ('FGM3','FGX3') THEN 1 ELSE 0 END), 0), 3) AS fg3_pct,
-            SUM(CASE WHEN c.outcome = 'TO' THEN 1 ELSE 0 END) AS turnovers,
+                THEN 1 ELSE 0 END), 0), 3) AS fg_pct,
+            SUM(CASE WHEN c.outcome IN ('FGM3','FGX3')
+                THEN 1 ELSE 0 END) AS fga3,
+            SUM(CASE WHEN c.outcome = 'FGM3'
+                THEN 1 ELSE 0 END) AS fg3m,
+            ROUND(CAST(SUM(CASE WHEN c.outcome = 'FGM3'
+                THEN 1 ELSE 0 END) AS REAL) /
+                NULLIF(SUM(CASE WHEN c.outcome IN ('FGM3','FGX3')
+                THEN 1 ELSE 0 END), 0), 3) AS fg3_pct,
+            SUM(CASE WHEN c.outcome = 'TO'
+                THEN 1 ELSE 0 END) AS turnovers,
             ROUND(AVG(s.qsq), 2) AS avg_qsq,
             ROUND(AVG(s.qsp), 2) AS avg_qsp
         FROM chances c
-        LEFT JOIN shots s
-            ON s.xid_chance = c.xid_chance
+        LEFT JOIN shots s ON s.xid_chance = c.xid_chance
         WHERE c.offense_team = 'MIL'
-        AND c.mil_offense_lineup_key IS NOT NULL
+          AND c.mil_offense_lineup_key IS NOT NULL
         GROUP BY c.mil_offense_lineup_key
-        ORDER BY pts_scored DESC;
-        """).fetchall()
+        HAVING chances > 5
+        ORDER BY chances DESC
+    """).fetchall()
 
-def get_mil_lineup_defense(conn):
+
+def get_mil_lineup_defense(conn: sqlite3.Connection):
     return conn.execute("""
         SELECT
+            c.mil_defense_lineup_key AS lineup_key,
+            COUNT(DISTINCT c.xid_chance) AS chances_defended,
             SUM(c.pts_scored) AS pts_allowed,
             ROUND(SUM(c.expected_pts), 3) AS expected_points_allowed,
-            ROUND(
-                CAST(SUM(c.pts_scored) AS REAL) /
-                NULLIF(COUNT(DISTINCT c.xid_chance), 0),
-            3) AS pts_allowed_per_chance,
+            ROUND(CAST(SUM(c.pts_scored) AS REAL) /
+                NULLIF(COUNT(DISTINCT c.xid_chance), 0), 3) AS pts_allowed_per_chance,
             SUM(CASE WHEN c.outcome IN ('FGM2','FGX2','FGM3','FGX3')
                 THEN 1 ELSE 0 END) AS fga_allowed,
             SUM(CASE WHEN c.outcome IN ('FGM2','FGM3')
@@ -499,7 +573,7 @@ def get_mil_lineup_defense(conn):
             ROUND(CAST(SUM(CASE WHEN c.outcome IN ('FGM2','FGM3')
                 THEN 1 ELSE 0 END) AS REAL) /
                 NULLIF(SUM(CASE WHEN c.outcome IN ('FGM2','FGX2','FGM3','FGX3')
-                THEN 1 ELSE 0 END),0), 3) AS fg_pct_allowed,
+                THEN 1 ELSE 0 END), 0), 3) AS fg_pct_allowed,
             SUM(CASE WHEN c.outcome IN ('FGM3','FGX3')
                 THEN 1 ELSE 0 END) AS fga3_allowed,
             SUM(CASE WHEN c.outcome = 'FGM3'
@@ -507,36 +581,62 @@ def get_mil_lineup_defense(conn):
             ROUND(CAST(SUM(CASE WHEN c.outcome = 'FGM3'
                 THEN 1 ELSE 0 END) AS REAL) /
                 NULLIF(SUM(CASE WHEN c.outcome IN ('FGM3','FGX3')
-                THEN 1 ELSE 0 END),0), 3) AS fg3_pct_allowed,
+                THEN 1 ELSE 0 END), 0), 3) AS fg3_pct_allowed,
             SUM(CASE WHEN c.outcome = 'TO'
                 THEN 1 ELSE 0 END) AS turnovers_forced,
             ROUND(AVG(s.qsq), 2) AS opp_avg_qsq,
             ROUND(AVG(s.qsp), 2) AS opp_avg_qsp
         FROM chances c
-        LEFT JOIN shots s
-            ON s.xid_chance = c.xid_chance
+        LEFT JOIN shots s ON s.xid_chance = c.xid_chance
         WHERE c.defense_team = 'MIL'
-        AND c.mil_defense_lineup_key IS NOT NULL
+          AND c.mil_defense_lineup_key IS NOT NULL
         GROUP BY c.mil_defense_lineup_key
-        ORDER BY pts_allowed DESC;
-        """).fetchall()
+        HAVING chances_defended > 5
+        ORDER BY pts_allowed DESC
+    """).fetchall()
 
-pprint_section("", get_team_overview_stats(conn))
-pprint_section("", get_team_rebounding_stats(conn))
-pprint_section("", get_shot_chart_overall(conn))
-pprint_section("", get_shot_chart_by_quarter(conn))
-pprint_section("", get_player_scoring_stats(conn))
-pprint_section("", get_drive_scoring_stats(conn))
-pprint_section("", get_drive_finishers(conn))
-pprint_section("", get_defenders_beaten_off_dribble(conn))
-pprint_section("", get_offense_roll_and_pop_stats(conn))
-pprint_section("", get_roll_defensive_coverage(conn))
-pprint_section("", get_pop_defensive_coverage(conn))
-pprint_section("", get_over_screen_pts_allowed(conn))
-pprint_section("", get_under_screen_pts_allowed(conn))
-pprint_section("", get_switch_pts_allowed(conn))
-pprint_section("", get_double_team_pts_allowed(conn))
-pprint_section("", get_shot_quality_by_team(conn))
-pprint_section("", get_shot_quality_by_quarter(conn))
-pprint_section("", get_mil_lineup_offense(conn))
-pprint_section("", get_mil_lineup_defense(conn))
+def get_mil_lineup_player_keys(conn):
+    return conn.execute("""
+        WITH offense_keys AS (
+            SELECT
+                c.mil_offense_lineup_key AS lineup_key,
+                'offense' AS lineup_type,
+                p.first_name || ' ' || p.last_name AS player_name
+            FROM chances c
+            JOIN lineups l ON l.xid_chance = c.xid_chance
+            JOIN players p ON p.pid_s2 = l.pid_s2
+            WHERE c.offense_team = 'MIL'
+              AND c.mil_offense_lineup_key IS NOT NULL
+              AND l.team_role = 'offense'
+            GROUP BY c.mil_offense_lineup_key, p.pid_s2
+            HAVING COUNT(DISTINCT c.xid_chance) > 5
+        ),
+        defense_keys AS (
+            SELECT
+                c.mil_defense_lineup_key AS lineup_key,
+                'defense' AS lineup_type,
+                p.first_name || ' ' || p.last_name AS player_name
+            FROM chances c
+            JOIN lineups l ON l.xid_chance = c.xid_chance
+            JOIN players p ON p.pid_s2 = l.pid_s2
+            WHERE c.defense_team = 'MIL'
+              AND c.mil_defense_lineup_key IS NOT NULL
+              AND l.team_role = 'defense'
+            GROUP BY c.mil_defense_lineup_key, p.pid_s2
+            HAVING COUNT(DISTINCT c.xid_chance) > 5
+        )
+        SELECT
+            lineup_key,
+            lineup_type,
+            GROUP_CONCAT(player_name, ', ') AS players
+        FROM (
+            SELECT lineup_key, lineup_type, player_name
+            FROM offense_keys
+            UNION ALL
+            SELECT lineup_key, lineup_type, player_name
+            FROM defense_keys
+            ORDER BY lineup_key, player_name
+        )
+        GROUP BY lineup_key, lineup_type
+        ORDER BY lineup_type, lineup_key
+    """).fetchall()
