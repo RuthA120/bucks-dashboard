@@ -21,6 +21,7 @@ def create_tables(conn):
     cursor.execute("DROP TABLE IF EXISTS rebound_actions")
     cursor.execute("DROP TABLE IF EXISTS chances")
     cursor.execute("DROP TABLE IF EXISTS players")
+    cursor.execute("DROP TABLE IF EXISTS player_game_stats")
 
     cursor.execute("""
         CREATE TABLE players (
@@ -125,6 +126,25 @@ def create_tables(conn):
             boxout_missed INTEGER,
             rear_boxouts INTEGER,
             FOREIGN KEY (xid_chance) REFERENCES chances(xid_chance)
+        )
+    """)
+
+    cursor.execute("""
+        CREATE TABLE player_game_stats (
+            player_name TEXT,
+            team        TEXT,
+            ft          INTEGER,
+            fta         INTEGER,
+            ft_pct      REAL,
+            orb         INTEGER,
+            drb         INTEGER,
+            trb         INTEGER,
+            ast         INTEGER,
+            stl         INTEGER,
+            blk         INTEGER,
+            pf          INTEGER,
+            plus_minus  INTEGER,
+            PRIMARY KEY (player_name, team)
         )
     """)
 

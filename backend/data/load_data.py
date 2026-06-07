@@ -9,6 +9,7 @@ import json
 
 def load_data(conn, csv_file):
     cursor = conn.cursor()
+    load_player_game_stats(conn, 'data/mil-cha-game-bball-reference.csv')
     with open(csv_file, "r", encoding="utf-8") as file:
         reader = csv.DictReader(file)
 
@@ -211,14 +212,16 @@ def insert_drive(cursor, xid_chance, drive_info):
         INSERT OR IGNORE INTO drives (
             xid_chance,
             actions,
+            direct_chance,
             pts_scored,
             blowby_opportunities,
             blowbys
         )
-        VALUES (?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?)
     """, (
         xid_chance,
         drive_info.get("actions", 0),
+        drive_info.get("directChance", 0),
         drive_info.get("ptsScored", 0),
         drive_info.get("blowbyOpp", 0),
         drive_info.get("blowby", 0)
@@ -300,3 +303,49 @@ def update_lineup_key(cursor, xid_chance, lineups_json, teams):
             mil_defense_lineup_key = ?
         WHERE xid_chance = ?
     """, (mil_offense_key, mil_defense_key, xid_chance))
+
+
+def load_player_game_stats(conn, csv_file):
+    """
+    Loads the separate player box score CSV containing
+    FT, rebounds, assists, steals, blocks, etc.
+    Call this after load_data() with the box score CSV path.
+    """
+    cursor = conn.cursor()
+    with open(csv_file, "r", encoding="utf-8") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            cursor.execute("""
+                INSERT OR REPLACE INTO player_game_stats (
+                    player_name,
+                    team,
+                    ft,
+                    fta,
+                    ft_pct,
+                    orb,
+                    drb,
+                    trb,
+                    ast,
+                    stl,
+                    blk,
+                    pf,
+                    plus_minus
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                row["Name"].strip(),
+                row["TEAM"].strip(),
+                int(row["FT"] or 0),
+                int(row["FTA"] or 0),
+                float(row["FT%"] or 0),
+                int(row["ORB"] or 0),
+                int(row["DRB"] or 0),
+                int(row["TRB"] or 0),
+                int(row["AST"] or 0),
+                int(row["STL"] or 0),
+                int(row["BLK"] or 0),
+                int(row["PF"] or 0),
+                int(row["+/-"] or 0)
+            ))
+    conn.commit()
+    cursor.close()
