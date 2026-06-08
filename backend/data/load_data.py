@@ -49,11 +49,6 @@ def load_data(conn, csv_file):
                 else None
             )
 
-            lineups = (
-                json.loads(row["lineups"])
-                if row["lineups"]
-                else None
-            )
 
             xid_chance = row["xid_chance"]
 
@@ -65,10 +60,6 @@ def load_data(conn, csv_file):
 
             if shot_info:
                 insert_shots(cursor, xid_chance, shot_info)
-
-            if lineups:
-                insert_lineups(cursor, xid_chance, lineups)
-                update_lineup_key(cursor, xid_chance, lineups, teams)
 
             if drive_info:
                 insert_drive(cursor, xid_chance, drive_info)
@@ -179,33 +170,6 @@ def insert_shots(cursor, xid_chance, shot_info):
             shot.get("location", [None, None])[1]
         ))
 
-def insert_lineups(cursor, xid_chance, lineups):
-    on_court = lineups.get("onCourt", {})
-    for player in on_court.get("lineupOff", []):
-        cursor.execute("""
-            INSERT OR IGNORE INTO lineups (
-                xid_chance, pid_s2, team_role, lineup_position
-            )
-            VALUES (?, ?, ?, ?)
-        """, (
-            xid_chance,
-            player["playerInfo"]["pid_s2"],
-            "offense",
-            player["idx"]
-        ))
-
-    for player in on_court.get("lineupDef", []):
-        cursor.execute("""
-            INSERT OR IGNORE INTO lineups (
-                xid_chance, pid_s2, team_role, lineup_position
-            )
-            VALUES (?, ?, ?, ?)
-        """, (
-            xid_chance,
-            player["playerInfo"]["pid_s2"],
-            "defense",
-            player["idx"]
-        ))
 
 def insert_drive(cursor, xid_chance, drive_info):
     cursor.execute("""
@@ -278,32 +242,6 @@ def insert_rebound(cursor, xid_chance, reb_info):
         reb_info.get("boxoutMissed", 0),
         reb_info.get("boxoutRear", 0)
     ))
-
-def build_lineup_key(lineups_json, team_role):
-    on_court = lineups_json.get("onCourt", {})
-    key = "lineupOff" if team_role == "offense" else "lineupDef"
-    players = on_court.get(key, [])
-    ids = sorted(p["playerInfo"]["pid_s2"] for p in players)
-    return "|".join(ids)
-
-
-def update_lineup_key(cursor, xid_chance, lineups_json, teams):
-    offense_team = teams["teamOffense"]["teamInfo"]["teamAbbrev_s2"]
-
-    if offense_team == "MIL":
-        mil_offense_key = build_lineup_key(lineups_json, "offense")
-        mil_defense_key = None
-    else:
-        mil_offense_key = None
-        mil_defense_key = build_lineup_key(lineups_json, "defense")
-
-    cursor.execute("""
-        UPDATE chances
-        SET mil_offense_lineup_key = ?,
-            mil_defense_lineup_key = ?
-        WHERE xid_chance = ?
-    """, (mil_offense_key, mil_defense_key, xid_chance))
-
 
 def load_player_game_stats(conn, csv_file):
     """

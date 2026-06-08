@@ -547,7 +547,6 @@ def get_mil_lineup_offense(conn: sqlite3.Connection):
         WHERE c.offense_team = 'MIL'
           AND c.mil_offense_lineup_key IS NOT NULL
         GROUP BY c.mil_offense_lineup_key
-        HAVING chances > 5
         ORDER BY chances DESC
     """).fetchall()
 
@@ -586,7 +585,6 @@ def get_mil_lineup_defense(conn: sqlite3.Connection):
         WHERE c.defense_team = 'MIL'
           AND c.mil_defense_lineup_key IS NOT NULL
         GROUP BY c.mil_defense_lineup_key
-        HAVING chances_defended > 5
         ORDER BY pts_allowed DESC
     """).fetchall()
 
@@ -604,7 +602,6 @@ def get_mil_lineup_player_keys(conn):
               AND c.mil_offense_lineup_key IS NOT NULL
               AND l.team_role = 'offense'
             GROUP BY c.mil_offense_lineup_key, p.pid_s2
-            HAVING COUNT(DISTINCT c.xid_chance) > 5
         ),
         defense_keys AS (
             SELECT
@@ -618,7 +615,6 @@ def get_mil_lineup_player_keys(conn):
               AND c.mil_defense_lineup_key IS NOT NULL
               AND l.team_role = 'defense'
             GROUP BY c.mil_defense_lineup_key, p.pid_s2
-            HAVING COUNT(DISTINCT c.xid_chance) > 5
         )
         SELECT
             lineup_key,
