@@ -79,7 +79,7 @@ bucks-dashboard/
 │   │   └── shot_quality.py
 │   └── data/
 │       ├── create_tables.py          # Database schema
-│       ├── load_data.py              # CSV
+│       ├── load_data.py              # CSV file loads
 │       ├── insights.py               # All analytics queries
 │       ├── database.py               # DB connection helper
 │       └── mil-cha-1-22-26.csv       # Raw game data
@@ -104,12 +104,12 @@ Here are the navigation tabs that you can explore:
 
 
 ## Design Choices
-- Table Creation: I thought it would be best to store the game data into a database because querying this data with pandas or using Python on its own would be a complex process for filtering and aggregating the data since we would have to re-parse the JSON. Storing the data into SQL tables makes data insertion easy, and
+- **Table Creation**: I thought it would be best to store the game data into a database because querying this data with pandas or using Python on its own would be a complex process for filtering and aggregating the data since we would have to re-parse the JSON. Storing the data into SQL tables makes data insertion easy, and
 it makes the querying process easier when we have to integrate it to the backend.
 
-- Schema Design: Chances table is the main table since it stores every offensive opportunity and outcome and all the other tables can join back to it on the xid_chance attribute. The players table keeps track of players in the game and the player_game_stats table is just a supplementary table to provide box score stats that is difficult or not able to be obtained through the current data. The rest of the tables capture specific moments of the game such as the drives table only containing 'chances' in the game where a drive was recorded.
+- **Schema Design**: Chances table is the main table since it stores every offensive opportunity and outcome and all the other tables can join back to it on the xid_chance attribute. The players table keeps track of players in the game and the player_game_stats table is just a supplementary table to provide box score stats that is difficult or not able to be obtained through the current data. The rest of the tables capture specific moments of the game such as the drives table only containing 'chances' in the game where a drive was recorded.
 
-- API: Each router only imports the query functions it needs from the insights.py file which helps keep everything straightforward and understandable.
+- **API**: Each router only imports the query functions it needs from the insights.py file which helps keep everything straightforward and understandable.
 
 
 ## Insights
