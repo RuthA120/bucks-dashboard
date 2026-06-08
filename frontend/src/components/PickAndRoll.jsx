@@ -1,4 +1,4 @@
-import { useFetch, Spinner, ErrorMsg } from '../App'
+import { useFetch } from '../App'
 import './PickAndRoll.css'
 
 const SCHEME_META = {
@@ -78,12 +78,6 @@ export default function PickAndRoll() {
   const offense      = useFetch('/pick-and-roll/offense')
   const rollCoverage = useFetch('/pick-and-roll/defense/roll-coverage')
   const popCoverage  = useFetch('/pick-and-roll/defense/pop-coverage')
-
-  const loading = offense.loading || rollCoverage.loading || popCoverage.loading
-  const error   = offense.error   || rollCoverage.error   || popCoverage.error
-
-  if (loading) return <Spinner />
-  if (error)   return <ErrorMsg msg={error} />
 
   return (
     <div>

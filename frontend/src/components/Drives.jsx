@@ -1,5 +1,53 @@
-import { useFetch, Spinner, ErrorMsg } from '../App'
+import { useFetch } from '../App'
 import './Drives.css'
+
+function DriveSummaryCards({ data }) {
+  if (!data?.length) return null
+  return (
+    <div className="drive-summary-grid">
+      {data.map((r, i) => {
+        const teamClass = r.offense_team === 'MIL' ? 'mil' : 'cha'
+        return (
+          <div key={i} className="drive-summary-card">
+            <div className="drive-summary-team">
+              <span style={{fontSize: "2rem", fontWeight: "1000"}}>{r.offense_team}</span>
+            </div>
+            <div className="drive-summary-stats">
+              <div className="drive-stat-item">
+                <span className="drive-stat-value">{r.total_drives ?? 0}</span>
+                <span className="drive-stat-label">Total Drives</span>
+              </div>
+              <div className="drive-stat-item">
+                <span className="drive-stat-value">{r.drive_pts_scored ?? 0}</span>
+                <span className="drive-stat-label">Points</span>
+              </div>
+              <div className="drive-stat-item">
+                <span className="drive-stat-value">{r.pts_per_drive ?? '—'}</span>
+                <span className="drive-stat-label">Pts / Drive</span>
+              </div>
+              <div className="drive-stat-item">
+                <span className="drive-stat-value">{r.num_blowby_opportunities ?? 0}</span>
+                <span className="drive-stat-label">Blowby Opps</span>
+              </div>
+              <div className="drive-stat-item">
+                <span className="drive-stat-value">{r.blowbys_in_scoring_drives ?? 0}</span>
+                <span className="drive-stat-label">Blowbys and Score</span>
+              </div>
+              <div className="drive-stat-item">
+                <span className="drive-stat-value">
+                  {r.blowby_success_rate != null
+                    ? (r.blowby_success_rate * 100).toFixed(1) + '%'
+                    : '—'}
+                </span>
+                <span className="drive-stat-label">Blowby Success</span>
+              </div>
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
 
 function DriveOffenseTable({ data }) {
   if (!data?.length) return <p style={{color:'var(--text3)',padding:'1rem'}}>No data</p>
@@ -20,7 +68,11 @@ function DriveOffenseTable({ data }) {
               <td className="player-name">{r.player}</td>
               <td className="right">{r.drive_finish_attempts ?? 0}</td>
               <td className="right">{r.pts_scored ?? 0}</td>
-              <td className="right">{(r.finish_rate * 100).toFixed(1) + '%'}</td>
+              <td className="right">
+                {r.finish_rate != null
+                  ? (r.finish_rate * 100).toFixed(1) + '%'
+                  : '—'}
+              </td>
             </tr>
           ))}
         </tbody>
@@ -63,14 +115,9 @@ function DefenseBeatenTable({ data }) {
 }
 
 export default function Drives() {
-  const offense = useFetch('/drives/offense/finishers')
-  const defense = useFetch('/drives/defense/beaten')
-
-  const loading = offense.loading || defense.loading
-  const error   = offense.error   || defense.error
-
-  if (loading) return <Spinner />
-  if (error)   return <ErrorMsg msg={error} />
+  const driveStats = useFetch('/drives/drive-offense')
+  const offense    = useFetch('/drives/offense/finishers')
+  const defense    = useFetch('/drives/defense/beaten')
 
   return (
     <div>
@@ -79,10 +126,18 @@ export default function Drives() {
         <p className="section-sub">Drive creation, finishing, and defensive breakdowns</p>
       </div>
 
+      <p className="sub-heading">Team Drive Summary</p>
+      <div className="drives-glossary">
+        <strong>Drives</strong> — when a ball-handler aggressively dribbles toward the basket with intent to score<br />
+        <strong>Blowby Success</strong> — rate at which blowbys resulted in scoring drives
+      </div>
+      <DriveSummaryCards data={driveStats.data} />
+
+      <hr className="divider" />
+
       <p className="sub-heading">MIL Drive Offense — Finishers</p>
       <div className="drives-glossary">
-        <strong>Drives</strong> — when a ball-handler aggressively dribbles the ball toward the basket with the intent to score<br></br>
-        <strong>Finish Rate</strong> - measuring player effiency at making shots on drives
+        <strong>Finish Rate</strong> — measuring player efficiency at making shots on drives
       </div>
       <DriveOffenseTable data={offense.data} />
 
@@ -90,8 +145,7 @@ export default function Drives() {
 
       <p className="sub-heading">MIL Defenders Beaten Off Dribble</p>
       <div className="drives-glossary">
-        <strong>Blowby%</strong> — when a ball-handler beats their defender off the dribble to gain an advantageous position. A higher blowby rate on offense indicates effective drive creation; a higher rate allowed on defense indicates difficulty staying in front of ball-handlers.
-
+        <strong>Blowby%</strong> — when a ball-handler beats their defender off the dribble to gain an advantageous position. A higher rate allowed indicates difficulty staying in front of ball-handlers.
       </div>
       <DefenseBeatenTable data={defense.data} />
     </div>
