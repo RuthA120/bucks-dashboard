@@ -15,7 +15,6 @@ def create_tables(conn):
     cursor = conn.cursor()
 
     cursor.execute("DROP TABLE IF EXISTS shots")
-    cursor.execute("DROP TABLE IF EXISTS lineups")
     cursor.execute("DROP TABLE IF EXISTS drives")
     cursor.execute("DROP TABLE IF EXISTS pick_actions")
     cursor.execute("DROP TABLE IF EXISTS rebound_actions")
@@ -35,8 +34,6 @@ def create_tables(conn):
     cursor.execute("""
         CREATE TABLE chances (
             xid_chance TEXT PRIMARY KEY,
-            mil_offense_lineup_key  TEXT,
-            mil_defense_lineup_key  TEXT,
             period INTEGER,
             offense_team TEXT,
             defense_team TEXT,
@@ -71,18 +68,6 @@ def create_tables(conn):
             x_loc REAL,
             y_loc REAL,
             FOREIGN KEY (xid_chance) REFERENCES chances(xid_chance)
-        )
-    """)
-
-    cursor.execute("""
-        CREATE TABLE lineups (
-            xid_chance TEXT,
-            pid_s2 TEXT,
-            team_role TEXT,
-            lineup_position INTEGER,
-            PRIMARY KEY (xid_chance, pid_s2),
-            FOREIGN KEY (xid_chance) REFERENCES chances(xid_chance),
-            FOREIGN KEY (pid_s2) REFERENCES players(pid_s2)
         )
     """)
 

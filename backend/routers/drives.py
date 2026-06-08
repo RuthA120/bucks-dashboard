@@ -10,7 +10,7 @@ def _rows_to_list(rows) -> list[dict]:
     return [dict(row) for row in rows]
 
 
-@router.get("/offense")
+@router.get("/drive-offense")
 def drive_offense(conn: sqlite3.Connection = Depends(get_db)):
     return _rows_to_list(insights.get_drive_scoring_stats(conn))
 
