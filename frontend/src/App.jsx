@@ -4,7 +4,6 @@ import Players from './components/Players'
 import Drives from './components/Drives'
 import PickAndRoll from './components/PickAndRoll'
 import ShotQuality from './components/ShotQuality'
-import Lineups from './components/Lineups'
 import './App.css'
 
 const API = 'http://localhost:8000'
@@ -14,8 +13,7 @@ const NAV = [
   { id: 'players',      label: 'Players' },
   { id: 'drives',       label: 'Drives' },
   { id: 'pick-and-roll',label: 'Pick & Roll' },
-  { id: 'shot-quality', label: 'Shot Quality' },
-  { id: 'lineups',      label: 'Lineups' },
+  { id: 'shot-quality', label: 'Shot Quality' }
 ]
 
 export function useFetch(url) {
@@ -31,14 +29,6 @@ export function useFetch(url) {
       .catch(e => { setError(e.message); setLoading(false) })
   }, [url])
   return { data, loading, error }
-}
-
-export function Spinner() {
-  return <div className="spinner"><div /><div /><div /></div>
-}
-
-export function ErrorMsg({ msg }) {
-  return <p className="error-msg">⚠ Could not load data: {msg}</p>
 }
 
 export function pct(val) {
@@ -60,7 +50,6 @@ export default function App() {
     drives:         <Drives />,
     'pick-and-roll':<PickAndRoll />,
     'shot-quality': <ShotQuality />,
-    lineups:        <Lineups />,
   }
 
   return (
