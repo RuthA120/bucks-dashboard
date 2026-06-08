@@ -2,7 +2,7 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid,
   Tooltip, Legend, ResponsiveContainer
 } from 'recharts'
-import { useFetch, Spinner, ErrorMsg, pct } from '../App'
+import { useFetch, pct } from '../App'
 import './ShotQuality.css'
 
 const MIL_COLOR = '#027c45'
@@ -119,12 +119,6 @@ function OverallQuality({ data }) {
 export default function ShotQuality() {
   const overall   = useFetch('/shot-quality/overall')
   const byQuarter = useFetch('/shot-quality/by-quarter')
-
-  const loading = overall.loading || byQuarter.loading
-  const error   = overall.error   || byQuarter.error
-
-  if (loading) return <Spinner />
-  if (error)   return <ErrorMsg msg={error} />
 
   const chartData = buildChartData(byQuarter.data)
 

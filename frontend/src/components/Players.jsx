@@ -1,4 +1,4 @@
-import { useFetch, Spinner, ErrorMsg, pct } from '../App'
+import { useFetch, pct } from '../App'
 import './Players.css'
 
 function LeaderCard({ category, data, statKey, statLabel }) {
@@ -106,12 +106,6 @@ function TeamSection({ team, label, accentColor, scoringData, teamLeaders }) {
 export default function Players() {
   const scoring = useFetch('/players/scoring')
   const leaders = useFetch('/players/leaders')
-
-  const loading = scoring.loading || leaders.loading
-  const error   = scoring.error   || leaders.error
-
-  if (loading) return <Spinner />
-  if (error)   return <ErrorMsg msg={error} />
 
   const milLeaders = leaders.data?.MIL ?? {}
   const chaLeaders = leaders.data?.CHA ?? {}
