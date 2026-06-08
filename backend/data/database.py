@@ -1,3 +1,7 @@
+"""
+This script serves as a database connection helper.
+"""
+
 import sqlite3
 from pathlib import Path
 from typing import Generator
